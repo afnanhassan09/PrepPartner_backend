@@ -80,7 +80,7 @@ app.post("/api/video", async (req, res) => {
 
 app.get("/api/pause", async (req, res) => {
   res.status(200).json({
-    url: "https://studyninja.s3.ap-south-1.amazonaws.com/videos/pause.mp4",
+    url: "https://studyninja.s3.ap-south-1.amazonaws.com/videos/C%3A/Users/nobody/Downloads/pause.mp4",
   });
 });
 
