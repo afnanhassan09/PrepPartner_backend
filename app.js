@@ -5,6 +5,7 @@ const multer = require("multer");
 const FormData = require("form-data");
 const dotenv = require("dotenv");
 const { MongoClient } = require("mongodb");
+const cron = require("node-cron"); // Import node-cron
 dotenv.config();
 
 const app = express();
@@ -82,6 +83,16 @@ app.get("/api/pause", async (req, res) => {
   res.status(200).json({
     url: "https://studyninja.s3.ap-south-1.amazonaws.com/videos/C%3A/Users/nobody/Downloads/pause.mp4",
   });
+});
+
+// Cron job to ping the backend every 10 minutes
+cron.schedule("*/10 * * * *", async () => {
+  try {
+    const response = await axios.get("https://preppartner-backend.onrender.com/");
+    console.log("Pinged backend:", response.status);
+  } catch (error) {
+    console.error("Error pinging backend:", error.message);
+  }
 });
 
 const PORT = process.env.PORT || 3000;
