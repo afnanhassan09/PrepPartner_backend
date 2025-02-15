@@ -34,6 +34,28 @@ app.get("/", async (req, res) => {
 app.post("/api/video", async (req, res) => {
   try {
     const { station, index } = req.body;
+    if (!station) {
+      return res.status(400).json({ error: "Station name is required" });
+    }
+
+    if (station == "Motivation") {
+      console.log(station);
+      await client.connect();
+      const database = client.db("PrepPartner_Test2");
+      const collection = database.collection(collectionName);
+      // Fetch all videos for the given station
+      const videos = await collection.find({ station }).toArray(); // Ensure we get the array of videos
+
+      // If no videos are found, send a proper response
+      if (videos.length === 0) {
+        return res
+          .status(404)
+          .json({ error: "No videos found for the given station" });
+      }
+
+      // Only send the video details, not the entire MongoDB client
+      return res.json(videos);
+    }
     if (!station || index === undefined) {
       return res
         .status(400)
@@ -88,7 +110,9 @@ app.get("/api/pause", async (req, res) => {
 // Cron job to ping the backend every 10 minutes
 cron.schedule("*/10 * * * *", async () => {
   try {
-    const response = await axios.get("https://preppartner-backend.onrender.com/");
+    const response = await axios.get(
+      "https://preppartner-backend.onrender.com/"
+    );
     console.log("Pinged backend:", response.status);
   } catch (error) {
     console.error("Error pinging backend:", error.message);
