@@ -5,7 +5,7 @@ const multer = require("multer");
 const FormData = require("form-data");
 const dotenv = require("dotenv");
 const { MongoClient } = require("mongodb");
-const cron = require("node-cron"); // Import node-cron
+const cron = require("node-cron");
 dotenv.config();
 
 const app = express();
@@ -43,17 +43,14 @@ app.post("/api/video", async (req, res) => {
       await client.connect();
       const database = client.db("PrepPartner_Test2");
       const collection = database.collection(collectionName);
-      // Fetch all videos for the given station
-      const videos = await collection.find({ station }).toArray(); // Ensure we get the array of videos
+      const videos = await collection.find({ station }).toArray(); 
 
-      // If no videos are found, send a proper response
       if (videos.length === 0) {
         return res
           .status(404)
           .json({ error: "No videos found for the given station" });
       }
 
-      // Only send the video details, not the entire MongoDB client
       return res.json(videos);
     }
     if (!station || index === undefined) {
@@ -66,7 +63,6 @@ app.post("/api/video", async (req, res) => {
     const database = client.db(dbName);
     const collection = database.collection(collectionName);
 
-    // Fetch all videos for the given station
     const videos = await collection
       .find({ station })
       .sort({ _id: 1 })
@@ -107,7 +103,6 @@ app.get("/api/pause", async (req, res) => {
   });
 });
 
-// Cron job to ping the backend every 10 minutes
 cron.schedule("*/10 * * * *", async () => {
   try {
     const response = await axios.get(
