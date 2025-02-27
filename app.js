@@ -16,13 +16,15 @@ const client = new MongoClient(uri);
 const dbName = "PrepPartner_Test";
 const collectionName = "test";
 
+
 app.use(
   cors({
-    origin: "*",
+    origin: ["http://localhost:8080"], 
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
 app.use(express.json());
 
 app.get("/", async (req, res) => {
