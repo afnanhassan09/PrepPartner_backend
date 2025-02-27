@@ -38,35 +38,11 @@ app.post("/api/video", async (req, res) => {
       return res.status(400).json({ error: "Station name is required" });
     }
 
-    if (station == "Motivation") {
-      console.log(station);
-      await client.connect();
-      const database = client.db("PrepPartner_Test2");
-      const collection = database.collection(collectionName);
-      const videos = await collection.find({ station }).toArray(); 
-
-      if (videos.length === 0) {
-        return res
-          .status(404)
-          .json({ error: "No videos found for the given station" });
-      }
-
-      return res.json(videos);
-    }
-    if (!station || index === undefined) {
-      return res
-        .status(400)
-        .json({ error: "Station name and index are required" });
-    }
-
     await client.connect();
-    const database = client.db(dbName);
-    const collection = database.collection(collectionName);
 
-    const videos = await collection
-      .find({ station })
-      .sort({ _id: 1 })
-      .toArray();
+    const database = client.db("PrepPartner_Test2");
+    const collection = database.collection(collectionName);
+    const videos = await collection.find({ station }).toArray();
 
     if (videos.length === 0) {
       return res
@@ -74,21 +50,7 @@ app.post("/api/video", async (req, res) => {
         .json({ error: "No videos found for the given station" });
     }
 
-    if (index >= videos.length) {
-      return res.json({
-        message: "No more videos available",
-        nextIndex: -1,
-      });
-    }
-
-    const video = videos[index];
-    const nextIndex = index + 1 < videos.length ? index + 1 : -1;
-
-    res.json({
-      question: video.question,
-      url: video.videoLink,
-      nextIndex,
-    });
+    return res.json(videos);
   } catch (error) {
     console.error("Error fetching video:", error);
     res.status(500).json({ error: "Failed to fetch video" });
