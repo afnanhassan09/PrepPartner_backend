@@ -19,7 +19,7 @@ const collectionName = "test";
 
 app.use(
   cors({
-    origin: ["http://localhost:8080"], 
+    origin: ["*"], 
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
