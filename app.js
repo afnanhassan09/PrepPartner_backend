@@ -17,13 +17,7 @@ const dbName = "PrepPartner_Test";
 const collectionName = "test";
 
 
-app.use(
-  cors({
-    origin: ["*"], 
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+app.use(cors());
 
 app.use(express.json());
 
