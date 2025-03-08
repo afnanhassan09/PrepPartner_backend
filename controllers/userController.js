@@ -15,6 +15,94 @@ class UserController {
     }
   }
 
+  //////////////////////////////////// Friends Functions //////////////////////////////////
+  async reqFriendship(req, res) {
+    try {
+      const user = await User.findById(req.user.id);
+      const { friendId } = req.body;
+      const friend = await User.findById(friendId);
+      if (!friend) {
+        return res.status(404).json({ message: "Friend not found" });
+      }
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      if (
+        user.friend_requests.some(
+          (req) => req.userId.toString() === friendId && req.type === "sent"
+        )
+      ) {
+        return res.status(400).json({ message: "Friend request already sent" });
+      }
+      user.friend_requests.push({ userId: friendId, type: "sent" });
+      friend.friend_requests.push({ userId: req.user.id, type: "received" });
+      await user.save();
+      await friend.save();
+      res.json({ message: "Friend request sent successfully" });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  async getAllFriendRequests(req, res) {
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ friend_requests: user.friend_requests });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  async acceptFriend(req, res) {
+    try {
+      const user = await User.findById(req.user.id);
+      const { friendId, response } = req.body;
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      if (response === "yes") {
+        if (user.friend_list.includes(friendId)) {
+          return res.status(400).json({ message: "User is already a friend" });
+        }
+        user.friend_list.push(friendId);
+      }
+      user.friend_requests = user.friend_requests.filter(
+        (req) => req.userId.toString() !== friendId
+      );
+      await user.save();
+      res.json({ message: "Friend request processed successfully" });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  async getAllFriends(req, res) {
+    try {
+      const user = await User.findById(req.user.id).populate(
+        "friend_list",
+        "name"
+      );
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const friends = user.friend_list.map((friend) => ({
+        id: friend._id,
+        name: friend.name,
+      }));
+      res.json({ friends });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  /////////////////////////////////// Chatting Functions //////////////////////////////////
   async getChatsWithUser(req, res) {
     try {
       const userId = req.user.id;

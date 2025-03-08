@@ -13,4 +13,16 @@ router.get("/chats/:otherUserId", auth, userController.getChatsWithUser);
 // get all contacts
 router.get("/contacts", auth, userController.getAllContacts);
 
+// Request friendship
+router.post("/friend/request", auth, userController.reqFriendship);
+
+// Get all friend requests
+router.get("/friend/requests", auth, userController.getAllFriendRequests);
+
+// Accept or reject friend request
+router.post("/friend/accept", auth, userController.acceptFriend);
+
+// Get all friends
+router.get("/friends", auth, userController.getAllFriends);
+
 module.exports = router;

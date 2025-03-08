@@ -24,8 +24,30 @@ const User = new mongoose.Schema(
     },
     online: {
       type: Boolean,
-      default: false
+      default: false,
     },
+    friend_list: {
+      type: Array,
+      default: [],
+    },
+    friend_requests: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        type: {
+          type: String,
+          enum: ["sent", "received"],
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );
