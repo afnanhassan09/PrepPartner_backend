@@ -22,9 +22,9 @@ const User = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    active: {
+    online: {
       type: Boolean,
-      default: true,
+      default: false
     },
   },
   { timestamp: true }

@@ -1,8 +1,8 @@
 const User = require("../models/userModel");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+const sendEmail = require("../utils/sendEmail");
 
 class UserController {
   async register(req, res) {
@@ -18,7 +18,7 @@ class UserController {
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = new User({ name, email, password: hashedPassword });
       await user.save();
-      res.json({ message: "User registered successfully" });
+      res.json({ message: "User registered successfully", user: user });
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: "Failed to register user" });
@@ -62,12 +62,14 @@ class UserController {
       user.resetPasswordExpires = Date.now() + 3600000;
       await user.save();
 
-      // Send the email here///////////////////////////////////////
+      const resetUrl = `${process.env.FRONTEND_URL}reset-password?token=${resetToken}`;
+      const message = `You are receiving this email because you (or someone else) have requested the reset of a password. Please make a put request to: \n\n ${resetUrl}`;
 
-      /////////////////////////////////////////////////////////////
+      await sendEmail(email, "Password Reset Request", message);
+
       res.json({
         message: "Password reset email sent",
-        token: resetPasswordToken,
+        token: resetToken,
       });
     } catch (err) {
       console.log(err);
@@ -101,3 +103,5 @@ class UserController {
     }
   }
 }
+
+module.exports = new UserController();
