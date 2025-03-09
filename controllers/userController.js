@@ -16,6 +16,19 @@ class UserController {
   }
 
   //////////////////////////////////// Friends Functions //////////////////////////////////
+  async viewAllOnlinePeople(req, res) {
+    try {
+      const onlineUsers = await User.find({ status: "online" });
+      if (!onlineUsers) {
+        return res.status(404).json({ message: "No online users found" });
+      }
+      res.json({ online_users: onlineUsers });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
   async reqFriendship(req, res) {
     try {
       const user = await User.findById(req.user.id);
@@ -152,6 +165,11 @@ class UserController {
     } catch (error) {
       res.status(500).json({ error: "Error fetching chat users" });
     }
+  }
+
+  async createMeetingWithFriend(req, res)
+  {
+    
   }
 }
 

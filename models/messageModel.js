@@ -20,6 +20,10 @@ const MessageSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    zoom_meeting: {
+      type: Boolean,
+      default: null,
+    },
   },
   { timestamps: true }
 );

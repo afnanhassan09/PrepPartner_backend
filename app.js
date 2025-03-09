@@ -7,10 +7,11 @@ const connectDB = require("./config/dbConnect");
 const authRoutes = require("./routes/authRoutes.js");
 const videoRoutes = require("./routes/videoRoutes");
 const userRoutes = require("./routes/userRoutes");
-const http = require('http');
-const { Server } = require('socket.io');
+const http = require("http");
+const { Server } = require("socket.io");
 const User = require("./models/userModel");
-const Message = require("./models/messageModel"); 
+const Message = require("./models/messageModel");
+const { createInstantMeeting } = require("./utils/zoomMeeting");
 
 dotenv.config();
 connectDB();
@@ -18,12 +19,12 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: "*",
-    }
+  cors: {
+    origin: "*",
+  },
 });
 
-const users = new Map(); 
+const users = new Map();
 
 app.use(cors());
 app.use(express.json());
@@ -38,6 +39,35 @@ app.use("/api/auth", authRoutes);
 app.use("/api/video", videoRoutes);
 app.use("/api/user", userRoutes);
 
+app.post("/api/meeting", async (req, res) => {
+  const { receiverId } = req.body;
+  const senderId = req.user.id;
+
+  try {
+    const zoomLink = await createInstantMeeting("Meeting with friend", 60);
+
+    const message = await Message.create({
+      senderId,
+      receiverId,
+      message: zoomLink,
+      zoom_meeting: true,
+    });
+
+    const receiverSocketId = users.get(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("receive_message", {
+        senderId,
+        message: zoomLink,
+      });
+    }
+
+    res.status(200).json({ message: "Meeting created successfully", zoomLink });
+  } catch (error) {
+    console.error("Error creating meeting:", error);
+    res.status(500).json({ message: "Failed to create meeting" });
+  }
+});
+
 cron.schedule("*/10 * * * *", async () => {
   try {
     const response = await axios.get(
@@ -50,31 +80,31 @@ cron.schedule("*/10 * * * *", async () => {
 });
 
 io.on("connection", async (socket) => {
-    const userId = socket.handshake.query.userId;
-    if (!userId) return;
+  const userId = socket.handshake.query.userId;
+  if (!userId) return;
 
-    await User.findByIdAndUpdate(userId, { online: true });
+  await User.findByIdAndUpdate(userId, { online: true });
 
-    users.set(userId, socket.id);
+  users.set(userId, socket.id);
 
-    socket.on("send_message", async ({ senderId, receiverId, message }) => {
-        const receiverSocketId = users.get(receiverId);
+  socket.on("send_message", async ({ senderId, receiverId, message }) => {
+    const receiverSocketId = users.get(receiverId);
 
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("receive_message", { senderId, message });
-        }
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("receive_message", { senderId, message });
+    }
 
-        try {
-            await Message.create({ senderId, receiverId, message });
-        } catch (error) {
-            console.error("Error saving message:", error);
-        }
-    });
+    try {
+      await Message.create({ senderId, receiverId, message });
+    } catch (error) {
+      console.error("Error saving message:", error);
+    }
+  });
 
-    socket.on("disconnect", async () => {
-        users.delete(userId);
-        await User.findByIdAndUpdate(userId, { online: false });
-    });
+  socket.on("disconnect", async () => {
+    users.delete(userId);
+    await User.findByIdAndUpdate(userId, { online: false });
+  });
 });
 
 const PORT = process.env.PORT || 3000;
