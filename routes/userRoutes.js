@@ -13,6 +13,9 @@ router.get("/chats/:otherUserId", auth, userController.getChatsWithUser);
 // get all contacts
 router.get("/contacts", auth, userController.getAllContacts);
 
+// Send a message to a user
+router.post("/message", auth, userController.sendMessage);
+
 // Request friendship
 router.post("/friend/request", auth, userController.reqFriendship);
 

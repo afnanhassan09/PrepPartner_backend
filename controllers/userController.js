@@ -166,6 +166,50 @@ class UserController {
     }
   }
 
+  async sendMessage(req, res) {
+    try {
+      const senderId = req.user.id;
+      const { receiverId, message, skipEmit } = req.body;
+
+      if (!receiverId || !message) {
+        return res.status(400).json({ message: "Receiver ID and message are required" });
+      }
+
+      // Check if receiver exists
+      const receiver = await User.findById(receiverId);
+      if (!receiver) {
+        return res.status(404).json({ message: "Receiver not found" });
+      }
+
+      // Create and save the message
+      const newMessage = await Message.create({
+        senderId,
+        receiverId,
+        message,
+      });
+
+      // Only emit from server if skipEmit is not true
+      if (!skipEmit) {
+        // Get socket.io instance from app.js
+        const io = req.app.get('io');
+        const users = req.app.get('users');
+        
+        const receiverSocketId = users.get(receiverId);
+        if (receiverSocketId && io) {
+          io.to(receiverSocketId).emit("receive_message", {
+            senderId,
+            message
+          });
+        }
+      }
+
+      res.status(201).json(newMessage);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      res.status(500).json({ message: "Error sending message", error: error.message });
+    }
+  }
+
   async getAllContacts(req, res) {
     try {
       const userId = req.user.id;

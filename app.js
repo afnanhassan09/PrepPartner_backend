@@ -24,7 +24,12 @@ const io = new Server(server, {
   },
 });
 
+// Map to store active user connections
 const users = new Map();
+
+// Make io and users available to routes
+app.set('io', io);
+app.set('users', users);
 
 app.use(cors());
 app.use(express.json());
@@ -81,29 +86,92 @@ cron.schedule("*/10 * * * *", async () => {
 
 io.on("connection", async (socket) => {
   const userId = socket.handshake.query.userId;
-  if (!userId) return;
+  if (!userId) {
+    console.log("Socket connection rejected: No user ID provided");
+    return;
+  }
 
-  await User.findByIdAndUpdate(userId, { online: true });
+  console.log(`User connected: ${userId} with socket ID: ${socket.id}`);
 
-  users.set(userId, socket.id);
+  try {
+    // Update user's online status
+    await User.findByIdAndUpdate(userId, { online: true });
+    
+    // Store the socket ID for this user
+    users.set(userId, socket.id);
+    
+    // Log all connected users for debugging
+    console.log("Currently connected users:", Array.from(users.entries()));
+  } catch (error) {
+    console.error(`Error updating user online status: ${error.message}`);
+  }
+
+  // Handle ping event to keep connection alive
+  socket.on("ping", () => {
+    // Just respond with a pong to keep the connection alive
+    socket.emit("pong");
+  });
+
+  // Store processed messages to prevent duplicates
+  const processedMessages = new Set();
 
   socket.on("send_message", async ({ senderId, receiverId, message }) => {
+    console.log(`Message from ${senderId} to ${receiverId}: ${message}`);
+    
+    if (!senderId || !receiverId || !message) {
+      console.error("Invalid message data:", { senderId, receiverId, message });
+      return;
+    }
+    
+    // Generate a unique message ID to prevent duplicates
+    const messageId = `${senderId}_${receiverId}_${Date.now()}_${message.substring(0, 10)}`;
+    
+    // Check if this message was recently processed
+    if (processedMessages.has(messageId)) {
+      console.log(`Ignoring duplicate message: ${messageId}`);
+      return;
+    }
+    
+    // Add to processed messages and limit the set size
+    processedMessages.add(messageId);
+    if (processedMessages.size > 100) {
+      // Remove oldest entries when we have too many
+      const iterator = processedMessages.values();
+      processedMessages.delete(iterator.next().value);
+    }
+    
+    // Get the receiver's socket ID
     const receiverSocketId = users.get(receiverId);
+    console.log(`Looking for receiver ${receiverId}, found socket: ${receiverSocketId || 'not found'}`);
+    console.log("All connected users:", Array.from(users.entries()));
 
+    // Send message to receiver if they're online
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("receive_message", { senderId, message });
+      console.log(`Emitting to socket: ${receiverSocketId}`);
+      // Using socket.to() instead of io.to() can cause issues with broadcasting
+      socket.to(receiverSocketId).emit("receive_message", { senderId, message });
+    } else {
+      console.log(`Receiver ${receiverId} is not online`);
     }
 
     try {
-      await Message.create({ senderId, receiverId, message });
+      // Save message to database
+      const newMessage = await Message.create({ senderId, receiverId, message });
+      console.log(`Message saved to database with ID: ${newMessage._id}`);
     } catch (error) {
       console.error("Error saving message:", error);
     }
   });
 
   socket.on("disconnect", async () => {
+    console.log(`User disconnected: ${userId}`);
     users.delete(userId);
-    await User.findByIdAndUpdate(userId, { online: false });
+    
+    try {
+      await User.findByIdAndUpdate(userId, { online: false });
+    } catch (error) {
+      console.error(`Error updating user offline status: ${error.message}`);
+    }
   });
 });
 
