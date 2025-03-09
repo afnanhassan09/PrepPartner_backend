@@ -26,16 +26,12 @@ const User = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    friend_list: {
-      type: Array,
-      default: [],
-    },
+    friend_list: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     friend_requests: [
       {
         userId: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
-          required: true,
         },
         type: {
           type: String,

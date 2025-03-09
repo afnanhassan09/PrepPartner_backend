@@ -26,8 +26,8 @@ class UserController {
         req.userId.toString()
       );
       const onlineUsers = await User.find({
-        status: "online",
-        _id: { $nin: [...user.friend_list, ...friendRequests] },
+        online: true,
+        _id: { $nin: [...user.friend_list, ...friendRequests, user._id] },
       });
       if (!onlineUsers.length) {
         return res.status(404).json({ message: "No online users found" });
@@ -70,11 +70,20 @@ class UserController {
 
   async getAllFriendRequests(req, res) {
     try {
-      const user = await User.findById(req.user.id);
+      const user = await User.findById(req.user.id).populate(
+        "friend_requests.userId",
+        "name"
+      );
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json({ friend_requests: user.friend_requests });
+      const friendRequests = user.friend_requests.map((request) => ({
+        userId: request.userId._id,
+        name: request.userId.name,
+        type: request.type,
+        createdAt: request.createdAt,
+      }));
+      res.json({ friend_requests: friendRequests });
     } catch (error) {
       console.log(error);
       return res.status(500).json({ message: "Internal server error" });
@@ -83,8 +92,15 @@ class UserController {
 
   async acceptFriend(req, res) {
     try {
+      if (!req.user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       const user = await User.findById(req.user.id);
       const { friendId, response } = req.body;
+      const friend = await User.findById(friendId);
+      if (!friend) {
+        return res.status(404).json({ message: "Friend not found" });
+      }
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
@@ -93,11 +109,16 @@ class UserController {
           return res.status(400).json({ message: "User is already a friend" });
         }
         user.friend_list.push(friendId);
+        friend.friend_list.push(req.user.id);
       }
       user.friend_requests = user.friend_requests.filter(
         (req) => req.userId.toString() !== friendId
       );
+      friend.friend_requests = friend.friend_requests.filter(
+        (friendReq) => friendReq.userId.toString() !== req.user.id
+      );
       await user.save();
+      await friend.save();
       res.json({ message: "Friend request processed successfully" });
     } catch (error) {
       console.log(error);
@@ -111,6 +132,7 @@ class UserController {
         "friend_list",
         "name"
       );
+      console.log(user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
