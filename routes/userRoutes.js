@@ -24,5 +24,7 @@ router.post("/friend/accept", auth, userController.acceptFriend);
 
 // Get all friends
 router.get("/friends", auth, userController.getAllFriends);
-
+ 
+// Get all Online users
+router.get("/online", auth, userController.viewAllOnlinePeople);
 module.exports = router;
