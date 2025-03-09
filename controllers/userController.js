@@ -159,7 +159,13 @@ class UserController {
           },
         },
         { $unwind: "$user" },
-        { $project: { _id: "$user._id", name: "$user.name" } },
+        {
+          $project: {
+            _id: "$user._id",
+            name: "$user.name",
+            status: "$user.status",
+          },
+        },
       ]);
       res.json(chatUsers);
     } catch (error) {
@@ -167,10 +173,7 @@ class UserController {
     }
   }
 
-  async createMeetingWithFriend(req, res)
-  {
-    
-  }
+  async createMeetingWithFriend(req, res) {}
 }
 
 module.exports = new UserController();
