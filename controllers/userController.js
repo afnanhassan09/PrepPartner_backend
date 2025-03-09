@@ -18,8 +18,18 @@ class UserController {
   //////////////////////////////////// Friends Functions //////////////////////////////////
   async viewAllOnlinePeople(req, res) {
     try {
-      const onlineUsers = await User.find({ status: "online" });
-      if (!onlineUsers) {
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      const friendRequests = user.friend_requests.map((req) =>
+        req.userId.toString()
+      );
+      const onlineUsers = await User.find({
+        status: "online",
+        _id: { $nin: [...user.friend_list, ...friendRequests] },
+      });
+      if (!onlineUsers.length) {
         return res.status(404).json({ message: "No online users found" });
       }
       res.json({ online_users: onlineUsers });
