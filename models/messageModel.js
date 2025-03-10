@@ -20,8 +20,16 @@ const MessageSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    zoom_meeting: {
+    video_call: {
       type: Boolean,
+      default: false,
+    },
+    room_id: {
+      type: String,
+      default: null,
+    },
+    room_name: {
+      type: String,
       default: null,
     },
   },
